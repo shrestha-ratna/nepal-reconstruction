@@ -1,0 +1,8 @@
+EduLevelID	Level	EducationLevel
+1	Primary (1-4)	Primary
+2	Secondary (5-10)	Secondary
+3	Higher secondary (11-12)	Secondary
+4	Bachelor degree	University
+5	Masters/Phd	University
+6	Vocational educaiton	Vocational
+7	Illiterate	Illiterate

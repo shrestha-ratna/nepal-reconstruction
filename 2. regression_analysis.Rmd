@@ -1,0 +1,398 @@
+---
+title: "Regression Analysis: Happiness"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'regression_analysis.html'))})
+---
+
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("MASS")
+library("dplyr")
+library("car")
+library("knitr")
+library("effects")
+library("ggplot2")
+library("gridExtra")
+library("brant")
+library("VGAM")
+library("sandwich")
+library("bucky")
+library("lmtest")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.annot <- file.path(dir.wrk, "dataset/annotation")
+```
+
+#### Define Files
+```{r tidy=TRUE}
+file.dat <- file.path(dir.data, "mastertbl_household_reconstruction.tsv")
+```
+
+#### Load Data
+```{r tidy=TRUE}
+dat <- read.delim(file.dat, header=TRUE, stringsAsFactors=FALSE)
+
+# FACTORIZE ---
+dat$DISTRICT <- factor(dat$DISTRICT, levels=c("Dhading","Sindhupalchowk"))
+dat$VDC_MUN <- factor(dat$VDC_MUN, levels=c("Gumdi","Sertung","Batase","Pangtang"))
+dat$WARD <- as.factor(dat$WARD)
+dat$SEX <- factor(dat$SEX, levels=c("Male","Female"))
+dat$ETHNICITY <- factor(dat$ETHNICITY, levels=c("Bahun","Chhetri","Dalit-Others","Gurung-Magar","Newar","Tamang"))
+dat$EDUCATION_LEVEL <- factor(dat$EDUCATION_LEVEL, levels=c("Illiterate","Primary","Secondary","University"))
+dat$OCCUPATION <- factor(dat$OCCUPATION, levels=c("Agriculture","Business","Goverment Employee","Labour","Teacher"))
+dat$INCOME_LEVEL <- factor(dat$INCOME_LEVEL, levels=c("0-2.5K","2.5-10K","10-20K","20-40K","40-60K","60K-Above"))
+dat$RECON_COMPLETED <- as.factor(dat$RECON_COMPLETED)
+dat$SATISFACTION_LEVEL <- as.factor(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE) 
+
+#str(dat)
+```
+</br></br>
+
+### Ordered Logistic Regression: Satisfaction Level vs. all potential predictors
+```{r message=FALSE}
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.mc <- MASS::polr(SATISFACTION_LEVEL ~ SEX + ETHNICITY + FREEDOM_CHOICE + EDUCATION_LEVEL + OCCUPATION + RECON_COMPLETED + DISTRICT + INCOME_LEVEL + AGE, data=dat, Hess=TRUE, method="logistic")
+
+AIC(fit.mc)
+
+# CALCULATE P-VALUE ---
+summary_table <- coef(summary(fit.mc))
+pval <- pnorm(abs(summary_table[, "t value"]), lower.tail=FALSE)* 2
+summary_table <- cbind(summary_table, "p value"=round(pval,4))
+
+# CALCULATE LOG-ODDS RATIO ---
+tbl_oddratio <- exp(cbind(OddRatio=coef(fit.mc), confint(fit.mc, level=0.95)))
+
+# AGGREGATE DATA ---
+summary_table_var <- as.data.frame(cbind(summary_table[1:nrow(tbl_oddratio),], tbl_oddratio))
+
+rmarkdown::paged_table(format(summary_table_var, digits=3), options=list(rows.print=10))  
+```
+
+### Analysis of deviance
+```{r}
+# ANOVA 
+car::Anova(fit.mc)
+```
+
+The above analysis reveals that the effects of variables such as, location, education, income, physical level of reconstruction, and occupation on the self-reported level of happiness are not statistically significant (at 95% confidence level). However, the effects of variables such as, Sex, Ethnicity, and Freedom of Choice on the happiness level were found to statistically significant. Thus, we redo the above analysis considering only Sex, Ethinicity, and Freedom of Choice.
+</br></br>
+
+
+
+### Ordered Logistic Regression: Satisfaction Level vs. significant predictors
+```{r message=FALSE}
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.m <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE, data=dat, Hess=TRUE, method="logistic")
+
+AIC(fit.m)
+
+# CALCULATE P-VALUE ---
+summary_table <- coef(summary(fit.m))
+pval <- pnorm(abs(summary_table[, "t value"]), lower.tail=FALSE)* 2
+summary_table <- cbind(summary_table, "p value"=round(pval,4))
+
+# CALCULATE LOG-ODDS RATIO ---
+tbl_oddratio <- exp(cbind(OddRatio=coef(fit.m), confint(fit.m, level=0.95)))
+
+# AGGREGATE DATA ---
+summary_table_var <- as.data.frame(cbind(summary_table[1:nrow(tbl_oddratio),], tbl_oddratio))
+
+rmarkdown::paged_table(format(summary_table_var, digits=3), options=list(rows.print=10))  
+```
+
+
+```{r}
+# SATISFACTION THRESHOLD ---
+summary_table_st <- as.data.frame(summary_table[(nrow(tbl_oddratio)+1):nrow(summary_table),])
+rmarkdown::paged_table(summary_table_st)
+```
+
+### Analysis of deviance
+```{r}
+# ANOVA 
+car::Anova(fit.m)
+```
+
+
+
+### Heteroscedasticity Robust stdandard errors and p-values 
+```{r}
+coef_t <- lmtest::coeftest(fit.m, vcov = sandwich::vcovHC(fit.m, type = "HC0"))
+
+coef_t
+```
+
+### Odds Ratios with robust confidence intervals
+```{r}
+robust_sr <- sqrt(diag( sandwich::vcovHC(fit.m, type = "HC0") ))
+y_or <- exp(coef(fit.m))
+robust_or <- suppressWarnings(
+                cbind(coef_t, y_or, 
+                   LL = exp(coef(fit.m) - 1.96 * robust_sr), 
+                   UL = exp(coef(fit.m) + 1.96 * robust_sr)))
+
+knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
+```
+
+</br></br>
+
+
+### Happiness/Satistfaction level for each level of freedom of choice
+```{r}
+# EFFECT OF THE FITTED MODEL ---
+ef1 <- effects::Effect(focal.predictors="FREEDOM_CHOICE", mod=fit.m, 
+                       xlevels=list(FREEDOM_CHOICE = 1:10, 2), latent = TRUE)
+
+#plot(ef1, rug=FALSE)
+```
+
+
+
+```{r}
+#### FUNCTION: plotEffect()
+plotEffect <- function(ef.obj){
+  # PREPARE DATA ---
+  df <- cbind(ef.obj$x, fit=ef.obj$fit, upper=ef.obj$upper, lower=ef.obj$lower)
+  dt <- data.frame(Level=names(ef.obj$thresholds), thresholds=ef.obj$thresholds)
+  
+  # FACTORIZE ---
+  df$FREEDOM_CHOICE <- as.numeric(as.character(df$FREEDOM_CHOICE))
+  
+  # PLOT ---
+  p <- ggplot(data = df, aes(x=FREEDOM_CHOICE, y=fit)) +
+              geom_hline(yintercept = dt$thresholds[5:9], color="#D9D9D9", size=1, linetype=2) +
+              #geom_ribbon(aes(ymin=lower, ymax=upper), fill="#D9D9D9", alpha=0.5) +
+              geom_line(aes(y = fit), color="#E31A1C", size=1.5) +
+              geom_errorbar(data=df, aes(x=FREEDOM_CHOICE, ymin=upper, ymax=lower), width=0.2, size=1, color="#969696") +
+              geom_point(color="#E31A1C", size=3) +
+              scale_x_continuous(breaks=c(1:10), labels=c(1:10)) +
+              scale_y_continuous(breaks=dt$thresholds,  labels=dt$Level, name="Satisfaction Level",
+                    sec.axis=sec_axis(~.*1,name="Effect", breaks=seq(-2,4,1), labels=seq(-2,4,1))) +
+              theme(
+                axis.text.x = element_text(size = 10, color="#000000"),
+                axis.text.y = element_text(size = 10, color="#000000"),
+                axis.title = element_text(size = 10, color="#000000"),
+                plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                axis.ticks = element_line(size=0.4, color="#000000"),	
+                strip.text = element_text(size=10, color="#000000"),
+                strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+                panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+                legend.text = element_text(size = 10, color="#000000"),
+                legend.title = element_blank(),
+                legend.key.size = unit(0.5, "cm"),
+                legend.position = "none") +
+            ylab("Effect") +
+            xlab("Freedom of Choice") + 
+            ggtitle("")
+            
+  
+    return(p)
+}
+```
+
+```{r fig.height = 4, fig.width = 6, fig.align = "center"}
+plotEffect(ef.obj=ef1)
+```
+
+
+
+</br></br>
+
+### Happiness/Satistfaction level for freedom of choice by sex and ethnicity
+```{r}
+# EFFECT OF THE FITTED MODEL ---
+ef2 <- effects::Effect(focal.predictors=c("SEX","FREEDOM_CHOICE","ETHNICITY"), mod=fit.m, 
+                       xlevels=list(FREEDOM_CHOICE = 1:10), latent = TRUE)
+
+#plot(ef2, rug = FALSE, ylim = c(-2.0,4.5))
+```
+
+
+
+```{r}
+# FUNCTION: plotEffect_MultiVar()
+plotEffect_MultiVar <- function(ef.obj){
+  # PREPARE DATA ---
+  df <- cbind(ef.obj$x, fit=ef.obj$fit, upper=ef.obj$upper, lower=ef.obj$lower)
+  dt <- data.frame(Level=names(ef.obj$thresholds), thresholds=ef.obj$thresholds)
+  
+  # FACTORIZE ---
+  df$FREEDOM_CHOICE <- as.numeric(as.character(df$FREEDOM_CHOICE))
+  df$SEX <- factor(df$SEX, levels=c("Male","Female"))
+  df$ETHNICITY <- factor(df$ETHNICITY, levels=c("Bahun","Chhetri","Dalit-Others","Gurung-Magar","Newar","Tamang"))
+
+  # PLOT ---
+  p <- ggplot(data = df, aes(x=FREEDOM_CHOICE, y=fit)) +
+              geom_hline(yintercept = dt$thresholds[4:9], color="#D9D9D9", size=1, linetype=2) +
+              #geom_ribbon(aes(ymin=lower, ymax=upper), fill="#D9D9D9", alpha=0.5) +
+              geom_line(aes(y = fit), color="#E31A1C", size=2) +
+              geom_errorbar(data=df, aes(x=FREEDOM_CHOICE, ymin=upper, ymax=lower), width=0.2, size=1, color="#969696") +
+              geom_point(color="#E31A1C", size=2) +
+              scale_x_continuous(breaks=c(1:10), labels=c(1:10)) +
+              scale_y_continuous(breaks=dt$thresholds,  labels=dt$Level, name="Satisfaction Level",
+                    sec.axis=sec_axis(~.*1,name="Effect", breaks=seq(-2,4,1), labels=seq(-2,4,1))) +
+              #facet_grid(ETHNICITY~SEX, scales="fixed", space="fixed") +
+              facet_grid(SEX~ETHNICITY, scales="fixed", space="fixed") +
+              theme(
+                axis.text.x = element_text(size = 10, color="#000000"),
+                axis.text.y = element_text(size = 10, color="#000000"),
+                axis.title = element_text(size = 10, color="#000000"),
+                plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                axis.ticks = element_line(size=0.4, color="#000000"),	
+                strip.text = element_text(size=10, color="#000000"),
+                strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+                panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+                legend.text = element_text(size = 10, color="#000000"),
+                legend.title = element_blank(),
+                legend.key.size = unit(0.5, "cm"),
+                legend.position = "none") +
+            ylab("Effect") +
+            xlab("Freedom of Choice") + 
+            ggtitle("")
+            
+  
+    return(p)
+}
+```
+
+
+```{r fig.height = 6, fig.width = 12, fig.align = "center"}
+plotEffect_MultiVar(ef.obj=ef2)
+```
+
+
+</br></br>
+
+```{r}
+ef3 <- effects::Effect(focal.predictors="FREEDOM_CHOICE", mod=fit.m, 
+                       xlevels=list(FREEDOM_CHOICE = 1:10, 2))
+
+#plot(ef3, lines=list(multiline=TRUE), rug=FALSE)
+```
+
+</br></br>
+
+### Propbability of each level of happiness/satisfaction at different levels of Freedom
+```{r}
+#### FUNCTION: plotEffect()
+plotProbEffect <- function(ef.obj){
+  # PREPARE DATA ---
+  df <- cbind(ef.obj$x, ef.obj$prob)
+  
+  # RESHAPE DATA ---
+  dm <- reshape2::melt(df, id.vars="FREEDOM_CHOICE", value.name="PROBABILITY")
+  colnames(dm) <- c("FREEDOM_CHOICE","SATISFACTION_LEVEL","PROBABILITY")
+  dm$SATISFACTION_LEVEL <- str_replace_all(dm$SATISFACTION_LEVEL, "prob.X", "")
+  
+  # FACTORIZE ---
+  dm$FREEDOM_CHOICE <- as.numeric(as.character(dm$FREEDOM_CHOICE))
+  dm$SATISFACTION_LEVEL <- as.factor(as.numeric(dm$SATISFACTION_LEVEL))
+  
+  # COLOR PALETTE
+  cpalette <- rev(c("#e31a1c","#a6cee3","#1f78b4","#b2df8a","#33a02c",
+                  "#fb9a99","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a"))
+  # PLOT ---
+  p <- ggplot(data = dm, aes(x=FREEDOM_CHOICE, y=PROBABILITY)) +
+              geom_line(aes(y=PROBABILITY, color=SATISFACTION_LEVEL), size=1.5) +
+              geom_point(aes(y=PROBABILITY, color=SATISFACTION_LEVEL), size=3) +
+              scale_x_continuous(breaks=c(1:10), labels=c(1:10)) +
+              scale_y_continuous(breaks=seq(0,0.6,0.1)) +
+              scale_color_manual(values=cpalette, name="Satisfaction Level") +
+              theme(
+                axis.text.x = element_text(size = 10, color="#000000"),
+                axis.text.y = element_text(size = 10, color="#000000"),
+                axis.title = element_text(size = 10, color="#000000"),
+                plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                axis.ticks = element_line(size=0.4, color="#000000"),	
+                strip.text = element_text(size=10, color="#000000"),
+                strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+                panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+                legend.text = element_text(size = 10, color="#000000"),
+                legend.title = element_text(size = 10, color="#000000"),
+                legend.key.size = unit(0.5, "cm"),
+                legend.background = element_blank(),
+                legend.box.background = element_blank(),
+                legend.position = "bottom") +
+            ylab("Probability of Satisfaction") +
+            xlab("Freedom of Choice") + 
+            ggtitle("")
+            
+  
+    return(p)
+}
+```
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+plotProbEffect(ef.obj=ef3)
+```
+
+
+
+</br></br>
+
+### Check for proportional or parallel assumption
+```{r}
+suppressWarnings(brant(fit.m))
+```
+
+</br></br>
+
+### Proportional assumption Check with VGAM
+```{r}
+m_glm <- suppressWarnings(VGAM::vglm(SATISFACTION_LEVEL~FREEDOM_CHOICE+ETHNICITY+SEX, data = dat,
+                    family = VGAM::cumulative(link = "logitlink", parallel = TRUE, reverse = FALSE)))
+```
+
+```{r}
+Anova(m_glm)
+summary(m_glm)
+is.parallel(m_glm)
+```
+
+## Check for multicollinearity: polr model
+```{r}
+car::vif(fit.m)
+```
+
+### Ordered Logistic Regression with FREEDOM as Dependent Variable
+```{r message=FALSE}
+# FIT FREEDOM ---
+dat$FREEDOM_CHOICE <- as.numeric(dat$FREEDOM_CHOICE)
+fit.free <- lm(FREEDOM_CHOICE ~ SEX+ETHNICITY, data=dat)
+summary(fit.free)
+
+# CALCULATE P-VALUE ---
+summary_table <- coef(summary(fit.free))
+pval <- pnorm(abs(summary_table[, "t value"]), lower.tail=FALSE)* 2
+summary_table <- cbind(summary_table, "p value"=round(pval,4))
+```
+
+### OLS Model with robust standard errors
+```{r}
+dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
+fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE, data=dat)
+
+lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
+```
+
+

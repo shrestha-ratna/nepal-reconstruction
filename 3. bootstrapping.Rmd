@@ -1,0 +1,90 @@
+---
+title: "Bootstrapping"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'bootstrap_analysis.html'))})
+---
+
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("MASS")
+library("dplyr")
+library("car")
+library("knitr")
+library("sandwich")
+library("lmtest")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.annot <- file.path(dir.wrk, "dataset/annotation")
+```
+
+#### Define Files
+```{r tidy=TRUE}
+file.dat <- file.path(dir.data, "mastertbl_household_reconstruction.tsv")
+```
+
+#### Load Data
+```{r tidy=TRUE}
+dat <- read.delim(file.dat, header=TRUE, stringsAsFactors=FALSE)
+
+# FACTORIZE ---
+dat$DISTRICT <- factor(dat$DISTRICT, levels=c("Dhading","Sindhupalchowk"))
+dat$VDC_MUN <- factor(dat$VDC_MUN, levels=c("Gumdi","Sertung","Batase","Pangtang"))
+dat$WARD <- as.factor(dat$WARD)
+dat$SEX <- factor(dat$SEX, levels=c("Male","Female"))
+dat$ETHNICITY <- factor(dat$ETHNICITY, levels=c("Bahun","Chhetri","Dalit-Others","Gurung-Magar","Newar","Tamang"))
+dat$EDUCATION_LEVEL <- factor(dat$EDUCATION_LEVEL, levels=c("Illiterate","Primary","Secondary","University"))
+dat$OCCUPATION <- factor(dat$OCCUPATION, levels=c("Agriculture","Business","Goverment Employee","Labour","Teacher"))
+dat$INCOME_LEVEL <- factor(dat$INCOME_LEVEL, levels=c("0-2.5K","2.5-10K","10-20K","20-40K","40-60K","60K-Above"))
+dat$RECON_COMPLETED <- as.factor(dat$RECON_COMPLETED)
+dat$SATISFACTION_LEVEL <- as.factor(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE) 
+
+#str(dat)
+```
+</br></br>
+
+
+### Bootstrapping of Odds ratio with confidence intervals
+```{r}
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.m <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE, data=dat, Hess=TRUE, method="logistic")
+
+# BOOTSTRAPPING
+or_boot <- suppressWarnings(car::Boot(fit.m, f = function(fit.m) exp(coef(fit.m)), R=1000))
+s_or_boot <- summary(or_boot)
+
+knitr::kable(format(as.data.frame(s_or_boot), digits=3), align="lllll")
+```
+
+
+```{r}
+df.or_boot <- format(as.data.frame(confint(or_boot, type="bca")), digits=3, scientific=FALSE)
+
+knitr::kable(format(df.or_boot, digits=3), align="ll")
+```
+
+
+### Bootstrapping for Coeffcients with 95% CI (Type= bca)
+```{r}
+beta_boot <- suppressWarnings(car::Boot(fit.m, R=1000))
+s_beta_boot <- summary(beta_boot)
+
+knitr::kable(format(as.data.frame(s_beta_boot), digits=3), align="lllll")
+```
+
+```{r}
+df.beta_boot <- format(as.data.frame(confint(beta_boot, type="bca")), digits=3, scientific=FALSE)
+
+knitr::kable(format(df.beta_boot, digits=3), align="ll")
+```

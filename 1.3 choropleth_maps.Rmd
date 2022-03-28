@@ -1,0 +1,82 @@
+---
+title: "Choropleth Maps"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'choropleth_maps.html'))})
+---
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("geojsonio")
+library("ggplot2")
+library("ggthemes")
+```
+
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.maps <- file.path(dir.wrk, "dataset/data_maps")
+```
+
+
+#### Define Files
+```{r tidy=TRUE}
+file.geo <- file.path(dir.maps, "nepal_district.geojson")
+```
+
+
+
+#### Load Maps
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+geo <- geojsonio::geojson_read(file.geo, parse=TRUE, what="sp")
+geo77 <- broom::tidy(geo, region="DISTRICT")
+geo_site <- subset(geo77, geo77$id %in% c("Dhading","Sindhupalchok"))
+
+head(geo_site)
+```
+
+
+
+
+#### Plot Choropleth Maps: Nepal with all Districts and highlighting the two study sites
+```{r fig.align = "center"}
+# PREPARE DATA ---
+d <- geo77
+d$Status <- 0
+d$Status[which(d$id %in% geo_site$id)] <- 1
+d$Status <- as.factor(d$Status)
+
+# DEFINE COLORS ---
+cpalette.grp <- c("#FFFFFF","#BDBDBD")
+
+# PLOT
+map77 <- ggplot(data=d, aes(x=long, y=lat, group=group)) +
+          geom_path() +
+          geom_polygon(aes(fill=Status), color="#000000") +
+          scale_fill_manual(values=cpalette.grp) +
+          coord_equal() +
+          theme_map() +
+          theme(
+            plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+            #aspect.ratio = 1,
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.ticks = element_blank(),	
+            strip.text = element_text(size = 10, color="#000000", hjust=0.5),
+            strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+            panel.background = element_rect(fill="#FFFFFF", color=NA),
+            legend.text = element_text(size = 10, color="#000000"),
+            legend.title = element_blank(),
+            legend.key.size = unit(0.5, "cm"),
+            legend.position = "none") +
+          guides(fill=guide_legend(title="No. of Households"))
+
+map77
+```

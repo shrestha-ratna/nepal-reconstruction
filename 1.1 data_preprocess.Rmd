@@ -1,0 +1,179 @@
+---
+title: "Data Pre-process"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'data_preprocess.html'))})
+---
+
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("dplyr")
+library("reshape2")
+library("rmarkdown")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.annot <- file.path(dir.wrk, "dataset/annotation")
+```
+
+#### Define Files
+```{r tidy=TRUE}
+file.dat <- file.path(dir.data, "reconstruction_data.csv")
+file.eth <- file.path(dir.annot, "groups_ethnicity.tsv")
+file.edu <- file.path(dir.annot, "groups_education.tsv")
+file.job <- file.path(dir.annot, "groups_occupation.tsv")
+file.income <- file.path(dir.annot, "groups_income.tsv")
+```
+
+#### Load Data
+```{r tidy=TRUE}
+dat <- read.csv(file.dat, header=TRUE, stringsAsFactors=FALSE)
+
+colnames(dat)
+```
+
+#### Add District & VDC-Municipality
+```{r tidy=TRUE}
+dat$VDC_MUN <- dat$DISTRICT <- NA
+dat$DISTRICT[which(dat$DISTRICT_CURRENT == 1)] <- "Sindhupalchowk"
+dat$DISTRICT[which(dat$DISTRICT_CURRENT == 2)] <- "Dhading"  
+
+dat$VDC_MUN[which(dat$VDC_MUNICIPALITY  == 1)] <- "Gumdi"
+dat$VDC_MUN[which(dat$VDC_MUNICIPALITY  == 2)] <- "Sertung"
+dat$VDC_MUN[which(dat$VDC_MUNICIPALITY  == 3)] <- "Batase"
+dat$VDC_MUN[which(dat$VDC_MUNICIPALITY  == 4)] <- "Pangtang"
+```
+
+#### Add Sex
+```{r tidy=TRUE}
+dat$SEX <- NA
+dat$SEX[which(dat$SEX_OF_RESPONDENTS == 1)] <- "Male"
+dat$SEX[which(dat$SEX_OF_RESPONDENTS == 2)] <- "Female"
+dat$SEX[which(dat$SEX_OF_RESPONDENTS == 3)] <- "Other"
+```
+
+#### Add Ethnicity
+```{r tidy=TRUE}
+dat.eth <- read.delim(file.eth, header=TRUE, stringsAsFactors=FALSE)
+
+dat$ETHNICITY <- NA
+for(i in 1:nrow(dat.eth)){
+  index <- which(dat$CASTE_ETHNICITY == dat.eth$CasteID[i])
+  dat$ETHNICITY[index] <- dat.eth$Ethnicity[i]
+}
+```
+
+
+#### Add EducationLevel
+```{r tidy=TRUE}
+dat.edu <- read.delim(file.edu, header=TRUE, stringsAsFactors=FALSE)
+
+dat$HIGHEST_EDUCATION <- dat$EDUCATION_LEVEL <-NA
+for(i in 1:nrow(dat.edu)){
+  index1 <- which(dat$EDUCATION_OF_RESPONDENTS == dat.edu$EduLevelID[i])
+  if(length(index1) != 0){
+    dat$EDUCATION_LEVEL[index1] <- dat.edu$EducationLevel[i]
+  }
+  
+  index2 <- which(dat$Highest_Education == dat.edu$EduLevelID[i])
+  if(length(index2) != 0){
+    dat$HIGHEST_EDUCATION[index2] <- dat.edu$EducationLevel[i]
+  }
+}
+```
+
+#### Add Occupation
+```{r tidy=TRUE}
+dat.job <- read.delim(file.job, header=TRUE, stringsAsFactors=FALSE)
+
+dat$OCCUPATION <- NA
+for(i in 1:nrow(dat.job)){
+  index <- which(dat$Primary_Occupation == dat.job$OccupationID[i])
+  dat$OCCUPATION[index] <- dat.job$OccupationGroup[i]
+}
+```
+
+```{r include=TRUE}
+table(dat$Income, dat$HIGHEST_EDUCATION)
+
+d <- subset(dat, dat$Income == 7)
+table(d$EDUCATION_LEVEL, d$HIGHEST_EDUCATION)
+```
+
+#### Impute Income Level Evaluating Education Level of Household
+```{r tidy=TRUE}
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Illiterate") & (dat$EDUCATION_LEVEL == "Illiterate"))] <- 1
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Illiterate") & (dat$EDUCATION_LEVEL == "Primary"))] <- 2
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Illiterate") & (dat$EDUCATION_LEVEL == "Secondary"))] <- 3
+
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Primary") & (dat$EDUCATION_LEVEL == "Illiterate"))] <- 1
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Primary") & (dat$EDUCATION_LEVEL == "Primary"))] <- 2
+
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Secondary") & (dat$EDUCATION_LEVEL == "Illiterate"))] <- 2
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Secondary") & (dat$EDUCATION_LEVEL == "Primary"))] <- 3
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "Secondary") & (dat$EDUCATION_LEVEL == "Secondary"))] <- 4
+
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "University") & (dat$EDUCATION_LEVEL == "Illiterate"))] <- 2
+dat$Income[which((dat$Income == 7) & (dat$HIGHEST_EDUCATION == "University") & (dat$EDUCATION_LEVEL == "Primary"))] <- 3
+
+#table(dat$Income)
+```
+
+
+#### Add Income
+```{r tidy=TRUE}
+dat.income <- read.delim(file.income, header=TRUE, stringsAsFactors=FALSE)
+
+dat$INCOME_LEVEL <- NA
+for(i in 1:nrow(dat.income)){
+  index <- which(dat$Income == dat.income$IncomeID[i])
+  dat$INCOME_LEVEL[index] <- dat.income$IncomeGroup[i]
+}
+```
+
+#### Trim Data
+```{r tidy=TRUE}
+dat$Amount_Spent[which(dat$Amount_Spent == -1)] <- NA
+
+items1 <- c("UNIQUE_ID","DATE","DISTRICT","VDC_MUN","WARD_CURRENT",
+            "SEX","AGE_OF_RESPONDENTS","ETHNICITY",
+            "EDUCATION_LEVEL","HIGHEST_EDUCATION","WALKING_DISTANCE",
+            "Household_Size","OCCUPATION","INCOME_LEVEL",
+            "Damage_Category","Recon_Completed","Months_Recon",
+            "Govt_Grant","Amount_Spent","Home_Safe",
+            "Satisfaction_Level","Freedom_Choice")
+
+#setdiff(colnames(dat), items)
+dat <- subset(dat, select=items1)
+
+items2 <- c("UNIQUE_ID","DATE","DISTRICT","VDC_MUN","WARD",
+            "SEX","AGE","ETHNICITY",
+            "EDUCATION_LEVEL","HIGHEST_EDUCATION","WALKING_DISTANCE",
+            "HOUSEHOLD_SIZE","OCCUPATION","INCOME_LEVEL",
+            "DAMAGE_CATEGORY","RECON_COMPLETED","RECON_MONTHS",
+            "GOVT_GRANT","AMOUNT_SPENT","HOME_SAFE",
+            "SATISFACTION_LEVEL","FREEDOM_CHOICE")
+
+colnames(dat) <- items2
+```
+
+#### View Data
+```{r, layout="l-body-outset"}
+rmarkdown::paged_table(dat, options = list(rows.print = 20))
+```
+
+
+#### Write Output
+```{r}
+file.output <- file.path(dir.data, "mastertbl_household_reconstruction.tsv")
+write.table(dat, file.output, sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+```

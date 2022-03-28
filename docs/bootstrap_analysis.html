@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Bootstrap Analysis</title>
+
+<script src="site_libs/header-attrs-2.8/header-attrs.js"></script>
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="data_preprocess.html">Data Pre-process</a>
+</li>
+<li>
+  <a href="choropleth_maps.html">Choropleth Maps</a>
+</li>
+<li>
+  <a href="exploratory_analysis.html">Exploratory Analysis</a>
+</li>
+<li>
+  <a href="regression_analysis.html">Regression Analysis</a>
+</li>
+<li>
+  <a href="inequality_analysis.html">Inequality Analysis</a>
+</li>
+<li>
+  <a href="bootstrap_analysis.html">Bootstrap Analysis</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Bootstrap Analysis</h1>
+
+</div>
+
+
+<div id="define-libraries" class="section level4">
+<h4>Define Libraries</h4>
+<pre class="r"><code>library(&quot;stringr&quot;)
+library(&quot;MASS&quot;)
+library(&quot;dplyr&quot;)
+library(&quot;car&quot;)
+library(&quot;knitr&quot;)
+library(&quot;sandwich&quot;)
+library(&quot;lmtest&quot;)
+library(&quot;bucky&quot;)</code></pre>
+</div>
+<div id="define-path" class="section level4">
+<h4>Define Path</h4>
+<pre class="r"><code>dir.wrk &lt;- getwd()
+dir.data &lt;- file.path(dir.wrk, &quot;dataset/data&quot;)
+dir.annot &lt;- file.path(dir.wrk, &quot;dataset/annotation&quot;)</code></pre>
+</div>
+<div id="define-files" class="section level4">
+<h4>Define Files</h4>
+<pre class="r"><code>file.dat &lt;- file.path(dir.data, &quot;mastertbl_household_reconstruction.tsv&quot;)</code></pre>
+</div>
+<div id="load-data" class="section level4">
+<h4>Load Data</h4>
+<pre class="r"><code>dat &lt;- read.delim(file.dat, header = TRUE, stringsAsFactors = FALSE)
+
+# FACTORIZE ---
+dat$DISTRICT &lt;- factor(dat$DISTRICT, levels = c(&quot;Dhading&quot;, &quot;Sindhupalchowk&quot;))
+dat$VDC_MUN &lt;- factor(dat$VDC_MUN, levels = c(&quot;Gumdi&quot;, &quot;Sertung&quot;, &quot;Batase&quot;, &quot;Pangtang&quot;))
+dat$WARD &lt;- as.factor(dat$WARD)
+dat$SEX &lt;- factor(dat$SEX, levels = c(&quot;Male&quot;, &quot;Female&quot;))
+dat$ETHNICITY &lt;- factor(dat$ETHNICITY, levels = c(&quot;Bahun&quot;, &quot;Chhetri&quot;, &quot;Dalit-Others&quot;, 
+    &quot;Gurung-Magar&quot;, &quot;Newar&quot;, &quot;Tamang&quot;))
+dat$EDUCATION_LEVEL &lt;- factor(dat$EDUCATION_LEVEL, levels = c(&quot;Illiterate&quot;, &quot;Primary&quot;, 
+    &quot;Secondary&quot;, &quot;University&quot;))
+dat$OCCUPATION &lt;- factor(dat$OCCUPATION, levels = c(&quot;Agriculture&quot;, &quot;Business&quot;, &quot;Goverment Employee&quot;, 
+    &quot;Labour&quot;, &quot;Teacher&quot;))
+dat$INCOME_LEVEL &lt;- factor(dat$INCOME_LEVEL, levels = c(&quot;0-2.5K&quot;, &quot;2.5-10K&quot;, &quot;10-20K&quot;, 
+    &quot;20-40K&quot;, &quot;40-60K&quot;, &quot;60K-Above&quot;))
+dat$RECON_COMPLETED &lt;- as.factor(dat$RECON_COMPLETED)
+dat$SATISFACTION_LEVEL &lt;- as.factor(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE &lt;- as.factor(dat$FREEDOM_CHOICE)
+
+# str(dat)</code></pre>
+<p></br></br></p>
+</div>
+<div id="bootstrapping-of-odds-ratio-with-confidence-intervals" class="section level3">
+<h3>Bootstrapping of Odds ratio with confidence intervals</h3>
+<pre class="r"><code># FIT ORDERED LOGISTIC REGRESSION ---
+fit.m &lt;- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE, data=dat, Hess=TRUE, method=&quot;logistic&quot;)
+
+# BOOTSTRAPPING
+or_boot &lt;- suppressWarnings(car::Boot(fit.m, f = function(fit.m) exp(coef(fit.m)), R=1000))</code></pre>
+<pre><code>## Loading required namespace: boot</code></pre>
+<pre class="r"><code>s_or_boot &lt;- summary(or_boot)
+
+knitr::kable(format(as.data.frame(s_or_boot), digits=3), align=&quot;lllll&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">R</th>
+<th align="left">original</th>
+<th align="left">bootBias</th>
+<th align="left">bootSE</th>
+<th align="left">bootMed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SEXFemale</td>
+<td align="left">1000</td>
+<td align="left">0.680</td>
+<td align="left">1.44e-02</td>
+<td align="left">1.39e-01</td>
+<td align="left">0.680</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYChhetri</td>
+<td align="left">1000</td>
+<td align="left">0.652</td>
+<td align="left">4.81e-02</td>
+<td align="left">3.06e-01</td>
+<td align="left">0.643</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYDalit-Others</td>
+<td align="left">1000</td>
+<td align="left">0.557</td>
+<td align="left">3.36e-02</td>
+<td align="left">2.37e-01</td>
+<td align="left">0.554</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYGurung-Magar</td>
+<td align="left">1000</td>
+<td align="left">0.427</td>
+<td align="left">1.04e-02</td>
+<td align="left">1.65e-01</td>
+<td align="left">0.409</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYNewar</td>
+<td align="left">1000</td>
+<td align="left">0.539</td>
+<td align="left">3.07e-02</td>
+<td align="left">2.45e-01</td>
+<td align="left">0.530</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYTamang</td>
+<td align="left">1000</td>
+<td align="left">0.275</td>
+<td align="left">1.38e-03</td>
+<td align="left">9.77e-02</td>
+<td align="left">0.262</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE2</td>
+<td align="left">1000</td>
+<td align="left">2.973</td>
+<td align="left">1.72e+04</td>
+<td align="left">5.45e+05</td>
+<td align="left">3.234</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE3</td>
+<td align="left">1000</td>
+<td align="left">2.463</td>
+<td align="left">4.85e-01</td>
+<td align="left">1.80e+00</td>
+<td align="left">2.490</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE4</td>
+<td align="left">1000</td>
+<td align="left">2.321</td>
+<td align="left">3.61e-01</td>
+<td align="left">1.48e+00</td>
+<td align="left">2.357</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE5</td>
+<td align="left">1000</td>
+<td align="left">2.728</td>
+<td align="left">3.99e-01</td>
+<td align="left">1.43e+00</td>
+<td align="left">2.891</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE6</td>
+<td align="left">1000</td>
+<td align="left">6.659</td>
+<td align="left">1.17e+00</td>
+<td align="left">3.64e+00</td>
+<td align="left">7.149</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE7</td>
+<td align="left">1000</td>
+<td align="left">9.446</td>
+<td align="left">1.86e+00</td>
+<td align="left">5.14e+00</td>
+<td align="left">10.223</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE8</td>
+<td align="left">1000</td>
+<td align="left">14.268</td>
+<td align="left">3.66e+00</td>
+<td align="left">1.05e+01</td>
+<td align="left">15.413</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE9</td>
+<td align="left">1000</td>
+<td align="left">39.671</td>
+<td align="left">1.49e+01</td>
+<td align="left">4.14e+01</td>
+<td align="left">43.933</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE10</td>
+<td align="left">1000</td>
+<td align="left">29.897</td>
+<td align="left">1.06e+01</td>
+<td align="left">3.05e+01</td>
+<td align="left">31.446</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>df.or_boot &lt;- format(as.data.frame(confint(or_boot, type=&quot;bca&quot;)), digits=3, scientific=FALSE)
+
+knitr::kable(format(df.or_boot, digits=3), align=&quot;ll&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">2.5 %</th>
+<th align="left">97.5 %</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SEXFemale</td>
+<td align="left">0.471</td>
+<td align="left">1.030</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYChhetri</td>
+<td align="left">0.279</td>
+<td align="left">1.623</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYDalit-Others</td>
+<td align="left">0.247</td>
+<td align="left">1.203</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYGurung-Magar</td>
+<td align="left">0.207</td>
+<td align="left">0.889</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYNewar</td>
+<td align="left">0.244</td>
+<td align="left">1.282</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYTamang</td>
+<td align="left">0.144</td>
+<td align="left">0.547</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE2</td>
+<td align="left">0.066</td>
+<td align="left">52.605</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE3</td>
+<td align="left">0.684</td>
+<td align="left">7.084</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE4</td>
+<td align="left">0.758</td>
+<td align="left">6.245</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE5</td>
+<td align="left">0.945</td>
+<td align="left">5.795</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE6</td>
+<td align="left">2.080</td>
+<td align="left">14.070</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE7</td>
+<td align="left">2.932</td>
+<td align="left">20.135</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE8</td>
+<td align="left">4.116</td>
+<td align="left">36.423</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE9</td>
+<td align="left">9.272</td>
+<td align="left">113.550</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE10</td>
+<td align="left">7.866</td>
+<td align="left">109.405</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="bootstrapping-for-coeffcients-with-95-ci-type-bca" class="section level3">
+<h3>Bootstrapping for Coeffcients with 95% CI (Type= bca)</h3>
+<pre class="r"><code>beta_boot &lt;- suppressWarnings(car::Boot(fit.m, R=1000))
+s_beta_boot &lt;- summary(beta_boot)
+
+knitr::kable(format(as.data.frame(s_beta_boot), digits=3), align=&quot;lllll&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">R</th>
+<th align="left">original</th>
+<th align="left">bootBias</th>
+<th align="left">bootSE</th>
+<th align="left">bootMed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SEXFemale</td>
+<td align="left">1000</td>
+<td align="left">-0.385</td>
+<td align="left">-0.00248</td>
+<td align="left">0.209</td>
+<td align="left">-0.391</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYChhetri</td>
+<td align="left">1000</td>
+<td align="left">-0.427</td>
+<td align="left">-0.02874</td>
+<td align="left">0.397</td>
+<td align="left">-0.465</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYDalit-Others</td>
+<td align="left">1000</td>
+<td align="left">-0.585</td>
+<td align="left">-0.01731</td>
+<td align="left">0.384</td>
+<td align="left">-0.596</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYGurung-Magar</td>
+<td align="left">1000</td>
+<td align="left">-0.852</td>
+<td align="left">-0.03074</td>
+<td align="left">0.356</td>
+<td align="left">-0.881</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYNewar</td>
+<td align="left">1000</td>
+<td align="left">-0.617</td>
+<td align="left">-0.03875</td>
+<td align="left">0.416</td>
+<td align="left">-0.668</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYTamang</td>
+<td align="left">1000</td>
+<td align="left">-1.290</td>
+<td align="left">-0.04514</td>
+<td align="left">0.354</td>
+<td align="left">-1.325</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE2</td>
+<td align="left">1000</td>
+<td align="left">1.090</td>
+<td align="left">-0.06498</td>
+<td align="left">1.962</td>
+<td align="left">1.062</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE3</td>
+<td align="left">1000</td>
+<td align="left">0.901</td>
+<td align="left">0.02323</td>
+<td align="left">0.558</td>
+<td align="left">0.911</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE4</td>
+<td align="left">1000</td>
+<td align="left">0.842</td>
+<td align="left">0.03965</td>
+<td align="left">0.514</td>
+<td align="left">0.870</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE5</td>
+<td align="left">1000</td>
+<td align="left">1.004</td>
+<td align="left">0.04148</td>
+<td align="left">0.422</td>
+<td align="left">1.030</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE6</td>
+<td align="left">1000</td>
+<td align="left">1.896</td>
+<td align="left">0.07153</td>
+<td align="left">0.413</td>
+<td align="left">1.965</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE7</td>
+<td align="left">1000</td>
+<td align="left">2.246</td>
+<td align="left">0.08251</td>
+<td align="left">0.420</td>
+<td align="left">2.344</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE8</td>
+<td align="left">1000</td>
+<td align="left">2.658</td>
+<td align="left">0.10316</td>
+<td align="left">0.510</td>
+<td align="left">2.793</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE9</td>
+<td align="left">1000</td>
+<td align="left">3.681</td>
+<td align="left">0.15970</td>
+<td align="left">0.580</td>
+<td align="left">3.849</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE10</td>
+<td align="left">1000</td>
+<td align="left">3.398</td>
+<td align="left">0.09948</td>
+<td align="left">0.659</td>
+<td align="left">3.502</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>df.beta_boot &lt;- format(as.data.frame(confint(beta_boot, type=&quot;bca&quot;)), digits=3, scientific=FALSE)
+
+knitr::kable(format(df.beta_boot, digits=3), align=&quot;ll&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">2.5 %</th>
+<th align="left">97.5 %</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SEXFemale</td>
+<td align="left">-0.767</td>
+<td align="left">0.0522</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYChhetri</td>
+<td align="left">-1.125</td>
+<td align="left">0.3961</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYDalit-Others</td>
+<td align="left">-1.363</td>
+<td align="left">0.1610</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYGurung-Magar</td>
+<td align="left">-1.567</td>
+<td align="left">-0.2139</td>
+</tr>
+<tr class="odd">
+<td align="left">ETHNICITYNewar</td>
+<td align="left">-1.342</td>
+<td align="left">0.2882</td>
+</tr>
+<tr class="even">
+<td align="left">ETHNICITYTamang</td>
+<td align="left">-1.976</td>
+<td align="left">-0.5798</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE2</td>
+<td align="left">-2.465</td>
+<td align="left">4.1696</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE3</td>
+<td align="left">-0.229</td>
+<td align="left">1.9457</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE4</td>
+<td align="left">-0.160</td>
+<td align="left">1.8869</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE5</td>
+<td align="left">0.139</td>
+<td align="left">1.8419</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE6</td>
+<td align="left">0.985</td>
+<td align="left">2.6353</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE7</td>
+<td align="left">1.225</td>
+<td align="left">2.9486</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE8</td>
+<td align="left">1.482</td>
+<td align="left">3.4657</td>
+</tr>
+<tr class="even">
+<td align="left">FREEDOM_CHOICE9</td>
+<td align="left">2.356</td>
+<td align="left">4.6161</td>
+</tr>
+<tr class="odd">
+<td align="left">FREEDOM_CHOICE10</td>
+<td align="left">2.077</td>
+<td align="left">4.6824</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

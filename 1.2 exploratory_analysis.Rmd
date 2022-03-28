@@ -1,0 +1,349 @@
+---
+title: "Exploratory Analysis"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'exploratory_analysis.html'))})
+---
+
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("dplyr")
+library("ggplot2")
+library("gridExtra")
+library("knitr")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.annot <- file.path(dir.wrk, "dataset/annotation")
+```
+#### Define Files
+```{r tidy=TRUE}
+file.dat <- file.path(dir.data, "mastertbl_household_reconstruction.tsv")
+```
+
+#### Load Data
+```{r tidy=TRUE}
+dat <- read.delim(file.dat, header=TRUE, stringsAsFactors=FALSE)
+
+# FACTORIZE ---
+dat$DISTRICT <- factor(dat$DISTRICT, levels=c("Dhading","Sindhupalchowk"))
+dat$VDC_MUN <- factor(dat$VDC_MUN, levels=c("Gumdi","Sertung","Batase","Pangtang"))
+dat$WARD <- as.factor(dat$WARD)
+dat$SEX <- factor(dat$SEX, levels=c("Male","Female"))
+dat$ETHNICITY <- factor(dat$ETHNICITY, levels=c("Bahun","Chhetri","Dalit-Others","Gurung-Magar","Newar","Tamang"))
+dat$EDUCATION_LEVEL <- factor(dat$EDUCATION_LEVEL, levels=c("Illiterate","Primary","Secondary","University"))
+dat$OCCUPATION <- factor(dat$OCCUPATION, levels=c("Agriculture","Business","Goverment Employee","Labour","Teacher"))
+dat$INCOME_LEVEL <- factor(dat$INCOME_LEVEL, levels=c("0-2.5K","2.5-10K","10-20K","20-40K","40-60K","60K-Above"))
+dat$RECON_COMPLETED <- as.factor(dat$RECON_COMPLETED)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE) 
+
+#str(dat)
+```
+</br></br>
+
+### Generate Basic Statistics 
+</br>
+
+#### Overall Satisfaction Level
+```{r}
+dm <- dat %>% 
+          dplyr::summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+knitr::kable(dm)
+```
+</br>
+
+
+#### Distribution by Location
+```{r}
+df11 <- dat %>% 
+          dplyr::count(DISTRICT, sort=FALSE, name="Number_of_Households")
+
+df12 <- dat %>% 
+          dplyr::select(DISTRICT, SATISFACTION_LEVEL) %>%
+          group_by(DISTRICT) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df1 <- merge(df11, df12, by="DISTRICT")
+
+knitr::kable(df1)
+```
+
+</br>
+
+#### Distribution by Sex
+```{r}
+df21 <- dat %>% 
+          dplyr::count(SEX, sort=FALSE, name="Number_of_Households")
+
+df22 <- dat %>% 
+          dplyr::select(SEX, SATISFACTION_LEVEL) %>%
+          group_by(SEX) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df2 <- merge(df21, df22, by="SEX")
+
+knitr::kable(df2)
+```
+
+</br>
+
+#### Distribution by Ethnicity
+```{r}
+df31 <- dat %>% 
+          dplyr::count(ETHNICITY, sort=FALSE, name="Number_of_Households")
+
+df32 <- dat %>% 
+          dplyr::select(ETHNICITY, SATISFACTION_LEVEL) %>%
+          group_by(ETHNICITY) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df3 <- merge(df31, df32, by="ETHNICITY")
+
+knitr::kable(df3)
+```
+
+</br>
+
+#### Distribution by Income Level
+```{r}
+df41 <- dat %>% 
+          dplyr::count(INCOME_LEVEL, sort=FALSE, name="Number_of_Households")
+
+df42 <- dat %>% 
+          dplyr::select(INCOME_LEVEL, SATISFACTION_LEVEL) %>%
+          group_by(INCOME_LEVEL) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df4 <- merge(df41, df42, by="INCOME_LEVEL")
+
+knitr::kable(df4)
+```
+
+</br>
+
+#### Distribution by Education Level
+```{r}
+df51 <- dat %>% 
+          dplyr::count(EDUCATION_LEVEL, sort=FALSE, name="Number_of_Households")
+
+df52 <- dat %>% 
+          dplyr::select(EDUCATION_LEVEL, SATISFACTION_LEVEL) %>%
+          group_by(EDUCATION_LEVEL) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df5 <- merge(df51, df52, by="EDUCATION_LEVEL")
+
+knitr::kable(df5)
+```
+
+</br>
+
+#### Distribution by Reconstruction Completed Level
+```{r}
+df61 <- dat %>% 
+          dplyr::count(RECON_COMPLETED, sort=FALSE, name="Number_of_Households")
+
+df62 <- dat %>% 
+          dplyr::select(RECON_COMPLETED, SATISFACTION_LEVEL) %>%
+          group_by(RECON_COMPLETED) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df6 <- merge(df61, df62, by="RECON_COMPLETED")
+
+knitr::kable(df6)
+```
+
+</br>
+
+#### Distribution by Freedom of Choice
+```{r}
+df71 <- dat %>% 
+          dplyr::count(FREEDOM_CHOICE, sort=FALSE, name="Number_of_Households")
+
+df72 <- dat %>% 
+          dplyr::select(FREEDOM_CHOICE, SATISFACTION_LEVEL) %>%
+          group_by(FREEDOM_CHOICE) %>%
+          summarize(Satisfaction_Mean=round(mean(SATISFACTION_LEVEL),3), 
+                    Satisfaction_Median=round(median(SATISFACTION_LEVEL),3), 
+                    Satisfaction_SD=round(sd(SATISFACTION_LEVEL),3))
+
+df7 <- merge(df71, df72, by="FREEDOM_CHOICE")
+df7$FREEDOM_CHOICE <- as.numeric(df7$FREEDOM_CHOICE)
+df7 <- df7[order(df7$FREEDOM_CHOICE, decreasing=FALSE),]
+
+knitr::kable(df7)
+```
+
+### Correlation between mean and SD of happiness:by Ethnicity
+```{r}
+shapiro.test(df3$Satisfaction_Mean)
+shapiro.test(df3$Satisfaction_SD)
+cor.test(df3$Satisfaction_Mean, df3$Satisfaction_SD, method="pearson")
+```
+
+### Correlation between mean and SD of happiness:by Income
+```{r}
+shapiro.test(df4$Satisfaction_Mean)
+shapiro.test(df4$Satisfaction_SD)
+cor.test(df4$Satisfaction_Mean, df4$Satisfaction_SD, method="pearson")
+```
+
+</br>
+
+
+### Distribution of Satisfaction Level
+```{r}
+p1 <- ggplot(dat, aes(x=SATISFACTION_LEVEL)) +
+        geom_histogram(aes(y=..density..), position="identity", color="#FFFFFF", fill="#377eb8", bins=10) +
+        scale_x_continuous(breaks=seq(0,10,by=1)) +
+        theme(
+          axis.text.x = element_text(size = 10, color="#000000"),
+          axis.text.y = element_text(size = 10, color="#000000"),
+          axis.title.x = element_text(size = 10, color="#000000"),
+          axis.title.y = element_text(size = 10, color="#000000"),
+          plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.ticks = element_line(size=0.4, color="#000000"),	
+          strip.text = element_text(size=10, color="#000000"),
+          strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+          panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+          legend.text = element_text(size = 12, color="#000000"),
+          legend.title = element_blank(),
+          legend.key.size = unit(0.5, "cm"),
+          legend.position = "none") +
+        geom_density(alpha=.2)+ 
+        ylab("Probability  Density") +
+        xlab("Satisfaction Level") + 
+        ggtitle("")
+```
+
+```{r fig.height = 3, fig.width = 8, fig.align = "center"}
+p1
+```
+
+#### Distribution of Satisfaction Level (by Ethnicity)
+```{r}
+p2 <- ggplot(dat, aes(x=SATISFACTION_LEVEL)) +
+        geom_histogram(aes(y=..density..), position="identity", color="#FFFFFF", fill="#377eb8", bins=10) +
+        scale_x_continuous(breaks=seq(0,10,by=1)) +
+        facet_wrap(~ETHNICITY, nrow=2, scales="fixed") +
+        theme(
+          axis.text.x = element_text(size = 10, color="#000000"),
+          axis.text.y = element_text(size = 10, color="#000000"),
+          axis.title.x = element_text(size = 10, color="#000000"),
+          axis.title.y = element_text(size = 10, color="#000000"),
+          plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.ticks = element_line(size=0.4, color="#000000"),	
+          strip.text = element_text(size=10, color="#000000", hjust=0.5),
+          strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+          panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+          legend.text = element_text(size = 10, color="#000000"),
+          legend.title = element_blank(),
+          legend.key.size = unit(0.5, "cm"),
+          legend.position = "none") +
+        geom_density(alpha=.2)+ 
+        ylab("Probability  Density") +
+        xlab("Satisfaction Level") + 
+        ggtitle("")
+```
+
+```{r fig.height = 4, fig.width = 10, fig.align = "center"}
+p2
+```
+
+#### Distribution of Satisfaction Level (by Sex)
+```{r}
+p3 <- ggplot(dat, aes(x=SATISFACTION_LEVEL)) +
+        geom_histogram(aes(y=..density..), position="identity", color="#FFFFFF", fill="#377eb8", bins=10) +
+        scale_x_continuous(breaks=seq(0,10,by=1)) +
+        facet_wrap(~SEX, nrow=1, scales="fixed") +
+        theme(
+          axis.text.x = element_text(size = 10, color="#000000"),
+          axis.text.y = element_text(size = 10, color="#000000"),
+          axis.title.x = element_text(size = 10, color="#000000"),
+          axis.title.y = element_text(size = 10, color="#000000"),
+          plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.ticks = element_line(size=0.4, color="#000000"),	
+          strip.text = element_text(size=10, color="#000000", hjust=0.5),
+          strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+          panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+          legend.text = element_text(size = 10, color="#000000"),
+          legend.title = element_blank(),
+          legend.key.size = unit(0.5, "cm"),
+          legend.position = "none") +
+        geom_density(alpha=.2) +
+        ylab("Probability  Density") +
+        xlab("Satisfaction Level") + 
+        ggtitle("")
+```
+
+```{r fig.height = 4, fig.width = 6, fig.align = "center"}
+p3
+```
+
+
+#### Distribution of Satisfaction Level (by Ethnicity and Sex)
+```{r}
+p4 <- ggplot(dat, aes(x=SATISFACTION_LEVEL)) +
+        geom_histogram(aes(y=..density..), position="identity", color="#FFFFFF", fill="#377eb8", bins=10) +
+        scale_x_continuous(breaks=seq(0,10,by=1)) +
+        facet_grid(SEX~ETHNICITY, scales="fixed") +
+        theme(
+          axis.text.x = element_text(size = 8, color="#000000"),
+          axis.text.y = element_text(size = 8, color="#000000"),
+          axis.title.x = element_text(size = 10, color="#000000"),
+          axis.title.y = element_text(size = 10, color="#000000"),
+          plot.title = element_text(size = 10, color="#000000", hjust=0.5),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.ticks = element_line(size=0.4, color="#000000"),	
+          strip.text = element_text(size=9, color="#000000", hjust=0.5),
+          strip.background = element_rect(fill="#FFFFFF", color="#FFFFFF"),
+          panel.background = element_rect(fill="#FFFFFF", color="#000000"),
+          legend.text = element_text(size = 10, color="#000000"),
+          legend.title = element_blank(),
+          legend.key.size = unit(0.5, "cm"),
+          legend.position = "none") +
+        geom_density(alpha=.2)+ 
+        ylab("Probability  Density") +
+        xlab("Satisfaction Level") + 
+        ggtitle("")
+```
+
+```{r fig.height = 5, fig.width = 10, fig.align = "center"}
+p4
+```
+
+```{r fig.height = 5, fig.width = 6.5, fig.align = "center"}
+pl_den <- grid.arrange(p1, p4, ncol=1)
+```
+

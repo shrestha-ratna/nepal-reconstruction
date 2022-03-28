@@ -1,0 +1,22 @@
+name: "happiness_reconstruction"
+output_dir: "docs"
+navbar:
+  title: ""
+  left:
+  - text: "Home"
+    href: index.html
+  - text: "Data Pre-process"
+    href: data_preprocess.html
+  - text: "Choropleth Maps"
+    href: choropleth_maps.html
+  - text: "Exploratory Analysis"
+    href: exploratory_analysis.html
+  - text: "Regression Analysis"
+    href: regression_analysis.html
+  - text: "Inequality Analysis"
+    href: inequality_analysis.html
+  - text: "Bootstrap Analysis"
+    href: bootstrap_analysis.html    
+output:
+  html_document:
+theme: cosmo
