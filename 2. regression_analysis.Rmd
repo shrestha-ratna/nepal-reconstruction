@@ -1,5 +1,5 @@
 ---
-title: "Regression Analysis: Happiness"
+title: "Regression Analysis: Satisfaction with New Houses"
 output: html_document
 
 knit: (function(input_file, encoding) {
@@ -25,6 +25,7 @@ library("VGAM")
 library("sandwich")
 library("bucky")
 library("lmtest")
+library("reshape2")
 ```
 
 #### Define Path
@@ -60,10 +61,12 @@ dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
 ```
 </br></br>
 
-### Ordered Logistic Regression: Satisfaction Level vs. all potential predictors
+### Ordered Logistic Regression: Satisfaction Level vs. all Potential Predictors
 ```{r message=FALSE}
 # FIT ORDERED LOGISTIC REGRESSION ---
-fit.mc <- MASS::polr(SATISFACTION_LEVEL ~ SEX + ETHNICITY + FREEDOM_CHOICE + EDUCATION_LEVEL + OCCUPATION + RECON_COMPLETED + DISTRICT + INCOME_LEVEL + AGE, data=dat, Hess=TRUE, method="logistic")
+dat$AGE_CATEGORY <- cut(dat$AGE, breaks=c(18, 29, 39, 49, 59, 69, 85), include.lowest=TRUE)
+
+fit.mc <- MASS::polr(SATISFACTION_LEVEL ~ SEX + ETHNICITY + FREEDOM_CHOICE + EDUCATION_LEVEL + OCCUPATION + RECON_COMPLETED + DISTRICT + INCOME_LEVEL + AGE_CATEGORY + HOUSEHOLD_SIZE, data=dat, Hess=TRUE, method="logistic")
 
 AIC(fit.mc)
 
@@ -87,12 +90,10 @@ rmarkdown::paged_table(format(summary_table_var, digits=3), options=list(rows.pr
 car::Anova(fit.mc)
 ```
 
-The above analysis reveals that the effects of variables such as, location, education, income, physical level of reconstruction, and occupation on the self-reported level of happiness are not statistically significant (at 95% confidence level). However, the effects of variables such as, Sex, Ethnicity, and Freedom of Choice on the happiness level were found to statistically significant. Thus, we redo the above analysis considering only Sex, Ethinicity, and Freedom of Choice.
+The above analysis reveals that the effects of variables such as, location, education, income, physical level of reconstruction, and occupation on the self-reported satisfaction are not statistically significant (at 95% confidence level). However, the effects of variables such as, Sex, Ethnicity, and Freedom of Choice on the satisfaction level were found to be statistically significant. Thus, we perform the above analysis considering only Sex, Ethinicity, and Freedom of Choice.
 </br></br>
 
-
-
-### Ordered Logistic Regression: Satisfaction Level vs. significant predictors
+### Ordered Logistic Regression: Satisfaction Level vs. Significant Predictors
 ```{r message=FALSE}
 # FIT ORDERED LOGISTIC REGRESSION ---
 fit.m <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE, data=dat, Hess=TRUE, method="logistic")
@@ -120,22 +121,20 @@ summary_table_st <- as.data.frame(summary_table[(nrow(tbl_oddratio)+1):nrow(summ
 rmarkdown::paged_table(summary_table_st)
 ```
 
-### Analysis of deviance
+### Analysis of Deviance
 ```{r}
 # ANOVA 
 car::Anova(fit.m)
 ```
 
-
-
-### Heteroscedasticity Robust stdandard errors and p-values 
+### Heteroscedasticity Robust Stdandard Errors and p-values 
 ```{r}
 coef_t <- lmtest::coeftest(fit.m, vcov = sandwich::vcovHC(fit.m, type = "HC0"))
 
 coef_t
 ```
 
-### Odds Ratios with robust confidence intervals
+### Odds Ratios with Robust Confidence Intervals
 ```{r}
 robust_sr <- sqrt(diag( sandwich::vcovHC(fit.m, type = "HC0") ))
 y_or <- exp(coef(fit.m))
@@ -149,8 +148,7 @@ knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
 
 </br></br>
 
-
-### Happiness/Satistfaction level for each level of freedom of choice
+### Satistfaction Level for each Level of Freedom of Choice
 ```{r}
 # EFFECT OF THE FITTED MODEL ---
 ef1 <- effects::Effect(focal.predictors="FREEDOM_CHOICE", mod=fit.m, 
@@ -158,7 +156,6 @@ ef1 <- effects::Effect(focal.predictors="FREEDOM_CHOICE", mod=fit.m,
 
 #plot(ef1, rug=FALSE)
 ```
-
 
 
 ```{r}
@@ -200,7 +197,6 @@ plotEffect <- function(ef.obj){
             xlab("Freedom of Choice") + 
             ggtitle("")
             
-  
     return(p)
 }
 ```
@@ -209,11 +205,9 @@ plotEffect <- function(ef.obj){
 plotEffect(ef.obj=ef1)
 ```
 
-
-
 </br></br>
 
-### Happiness/Satistfaction level for freedom of choice by sex and ethnicity
+### Satistfaction Level vs. Freedom of Choice by Sex and Ethnicity
 ```{r}
 # EFFECT OF THE FITTED MODEL ---
 ef2 <- effects::Effect(focal.predictors=c("SEX","FREEDOM_CHOICE","ETHNICITY"), mod=fit.m, 
@@ -221,7 +215,6 @@ ef2 <- effects::Effect(focal.predictors=c("SEX","FREEDOM_CHOICE","ETHNICITY"), m
 
 #plot(ef2, rug = FALSE, ylim = c(-2.0,4.5))
 ```
-
 
 
 ```{r}
@@ -266,8 +259,6 @@ plotEffect_MultiVar <- function(ef.obj){
             ylab("Effect") +
             xlab("Freedom of Choice") + 
             ggtitle("")
-            
-  
     return(p)
 }
 ```
@@ -276,7 +267,6 @@ plotEffect_MultiVar <- function(ef.obj){
 ```{r fig.height = 6, fig.width = 12, fig.align = "center"}
 plotEffect_MultiVar(ef.obj=ef2)
 ```
-
 
 </br></br>
 
@@ -289,7 +279,7 @@ ef3 <- effects::Effect(focal.predictors="FREEDOM_CHOICE", mod=fit.m,
 
 </br></br>
 
-### Propbability of each level of happiness/satisfaction at different levels of Freedom
+### Propbability of Each Level of Satisfaction at Different Freedom Levels
 ```{r}
 #### FUNCTION: plotEffect()
 plotProbEffect <- function(ef.obj){
@@ -335,8 +325,6 @@ plotProbEffect <- function(ef.obj){
             ylab("Probability of Satisfaction") +
             xlab("Freedom of Choice") + 
             ggtitle("")
-            
-  
     return(p)
 }
 ```
@@ -345,18 +333,16 @@ plotProbEffect <- function(ef.obj){
 plotProbEffect(ef.obj=ef3)
 ```
 
-
-
 </br></br>
 
-### Check for proportional or parallel assumption
+### Check for Proportional or Parallel Assumption
 ```{r}
 suppressWarnings(brant(fit.m))
 ```
 
 </br></br>
 
-### Proportional assumption Check with VGAM
+### Proportional Assumption Check with VGAM
 ```{r}
 m_glm <- suppressWarnings(VGAM::vglm(SATISFACTION_LEVEL~FREEDOM_CHOICE+ETHNICITY+SEX, data = dat,
                     family = VGAM::cumulative(link = "logitlink", parallel = TRUE, reverse = FALSE)))
@@ -368,7 +354,7 @@ summary(m_glm)
 is.parallel(m_glm)
 ```
 
-## Check for multicollinearity: polr model
+## Check for Multicollinearity: polr Model
 ```{r}
 car::vif(fit.m)
 ```
@@ -385,14 +371,3 @@ summary_table <- coef(summary(fit.free))
 pval <- pnorm(abs(summary_table[, "t value"]), lower.tail=FALSE)* 2
 summary_table <- cbind(summary_table, "p value"=round(pval,4))
 ```
-
-### OLS Model with robust standard errors
-```{r}
-dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
-dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
-fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE, data=dat)
-
-lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
-```
-
-

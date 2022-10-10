@@ -17,6 +17,7 @@ library("dplyr")
 library("ggplot2")
 library("gridExtra")
 library("knitr")
+library("magrittr")
 ```
 
 #### Define Path
@@ -198,22 +199,28 @@ df7 <- df7[order(df7$FREEDOM_CHOICE, decreasing=FALSE),]
 knitr::kable(df7)
 ```
 
-### Correlation between mean and SD of happiness:by Ethnicity
+### Correlation between mean and SD of satisfaction:by Ethnicity
 ```{r}
 shapiro.test(df3$Satisfaction_Mean)
 shapiro.test(df3$Satisfaction_SD)
 cor.test(df3$Satisfaction_Mean, df3$Satisfaction_SD, method="pearson")
 ```
 
-### Correlation between mean and SD of happiness:by Income
+### Correlation between mean and SD of satisfaction:by Income
 ```{r}
 shapiro.test(df4$Satisfaction_Mean)
 shapiro.test(df4$Satisfaction_SD)
 cor.test(df4$Satisfaction_Mean, df4$Satisfaction_SD, method="pearson")
 ```
 
-</br>
+### Correlation between mean and SD of satisfaction:by Education
+```{r}
+shapiro.test(df5$Satisfaction_Mean)
+shapiro.test(df5$Satisfaction_SD)
+cor.test(df5$Satisfaction_Mean, df5$Satisfaction_SD, method="pearson")
+```
 
+</br>
 
 ### Distribution of Satisfaction Level
 ```{r}
@@ -346,4 +353,3 @@ p4
 ```{r fig.height = 5, fig.width = 6.5, fig.align = "center"}
 pl_den <- grid.arrange(p1, p4, ncol=1)
 ```
-

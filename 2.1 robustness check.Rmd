@@ -1,0 +1,240 @@
+---
+title: "Robustness Check"
+output: html_document
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'robustness check.html'))})
+---
+
+
+#### Define Libraries
+```{r echo=TRUE, message=FALSE, warning=FALSE, tidy=TRUE}
+library("stringr")
+library("MASS")
+library("dplyr")
+library("car")
+library("knitr")
+library("effects")
+library("ggplot2")
+library("gridExtra")
+library("brant")
+library("VGAM")
+library("sandwich")
+library("bucky")
+library("lmtest")
+library("reshape2")
+```
+
+#### Define Path
+```{r tidy=TRUE}
+dir.wrk <- getwd()
+dir.data <- file.path(dir.wrk, "dataset/data")
+dir.annot <- file.path(dir.wrk, "dataset/annotation")
+```
+
+#### Define Files
+```{r tidy=TRUE}
+file.dat <- file.path(dir.data, "mastertbl_household_reconstruction.tsv")
+```
+
+#### Load Data
+```{r tidy=TRUE}
+dat <- read.delim(file.dat, header=TRUE, stringsAsFactors=FALSE)
+
+# FACTORIZE ---
+dat$DISTRICT <- factor(dat$DISTRICT, levels=c("Dhading","Sindhupalchowk"))
+dat$VDC_MUN <- factor(dat$VDC_MUN, levels=c("Gumdi","Sertung","Batase","Pangtang"))
+dat$WARD <- as.factor(dat$WARD)
+dat$SEX <- factor(dat$SEX, levels=c("Male","Female"))
+dat$ETHNICITY <- factor(dat$ETHNICITY, levels=c("Bahun","Chhetri","Dalit-Others","Gurung-Magar","Newar","Tamang"))
+dat$EDUCATION_LEVEL <- factor(dat$EDUCATION_LEVEL, levels=c("Illiterate","Primary","Secondary","University"))
+dat$OCCUPATION <- factor(dat$OCCUPATION, levels=c("Agriculture","Business","Goverment Employee","Labour","Teacher"))
+dat$INCOME_LEVEL <- factor(dat$INCOME_LEVEL, levels=c("0-2.5K","2.5-10K","10-20K","20-40K","40-60K","60K-Above"))
+dat$RECON_COMPLETED <- as.factor(dat$RECON_COMPLETED)
+dat$SATISFACTION_LEVEL <- as.factor(dat$SATISFACTION_LEVEL)
+
+```
+</br></br>
+
+### Robustness Check: Ordered Logistic Regression with Freedom as Continuous Variable
+```{r message=FALSE}
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.m1 <- MASS::polr(SATISFACTION_LEVEL ~ SEX + ETHNICITY + FREEDOM_CHOICE, data=dat, Hess=TRUE, method="logistic")
+
+# CALCULATE P-VALUE ---
+summary_tab <- coef(summary(fit.m1))
+pvalue <- pnorm(abs(summary_tab[, "t value"]), lower.tail=FALSE)* 2
+summary_tab <- cbind(summary_tab, "p value"=round(pvalue,4))
+
+# CALCULATE LOG-ODDS RATIO ---
+tbl_oddratio <- exp(cbind(OddRatio=coef(fit.m1), confint(fit.m1, level=0.95)))
+
+# AGGREGATE DATA ---
+summary_tab_var <- as.data.frame(cbind(summary_tab[1:nrow(tbl_oddratio),], tbl_oddratio))
+
+rmarkdown::paged_table(format(summary_tab_var, digits=3), options=list(rows.print=10))  
+```
+
+### Analysis of deviance
+```{r}
+# ANOVA 
+car::Anova(fit.m1)
+```
+
+### Heteroscedasticity Robust stdandard errors and p-values 
+```{r}
+coef_t <- lmtest::coeftest(fit.m1, vcov = sandwich::vcovHC(fit.m1, type = "HC0"))
+coef_t
+```
+### Odds Ratios with Robust Confidence Intervals
+```{r}
+robust_sr <- sqrt(diag(sandwich::vcovHC(fit.m1, type = "HC0") ))
+y_or <- exp(coef(fit.m1))
+robust_or <- suppressWarnings(
+                cbind(coef_t, y_or, 
+                   LL = exp(coef(fit.m1) - 1.96 * robust_sr), 
+                   UL = exp(coef(fit.m1) + 1.96 * robust_sr)))
+
+knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
+```
+
+### Robustness Check: Ordered Logistic Regression with Reconstruction Completed as Additional Control
+```{r message=FALSE}
+
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.m2 <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE+RECON_COMPLETED, data=dat, Hess=TRUE, method="logistic")
+
+# CALCULATE P-VALUE ---
+summary_tab <- coef(summary(fit.m2))
+pvalue <- pnorm(abs(summary_tab[, "t value"]), lower.tail=FALSE)* 2
+summary_tab <- cbind(summary_tab, "p value"=round(pvalue,4))
+
+# CALCULATE LOG-ODDS RATIO ---
+tbl_oddratio <- exp(cbind(OddRatio=coef(fit.m2), confint(fit.m2, level=0.95)))
+
+# AGGREGATE DATA ---
+summary_table_var <- as.data.frame(cbind(summary_tab[1:nrow(tbl_oddratio),], tbl_oddratio))
+
+rmarkdown::paged_table(format(summary_table_var, digits=3), options=list(rows.print=10))  
+```
+
+```{r}
+# SATISFACTION THRESHOLD ---
+summary_table_st <- as.data.frame(summary_tab[(nrow(tbl_oddratio)+1):nrow(summary_tab),])
+rmarkdown::paged_table(summary_table_st)
+```
+
+### Analysis of deviance
+```{r}
+# ANOVA 
+car::Anova(fit.m2)
+```
+
+### Heteroscedasticity Robust stdandard errors and p-values 
+```{r}
+coef_t <- lmtest::coeftest(fit.m2, vcov = sandwich::vcovHC(fit.m2, type = "HC0"))
+coef_t
+```
+### Odds Ratios with Robust Confidence Intervals
+```{r}
+robust_sr <- sqrt(diag( sandwich::vcovHC(fit.m2, type = "HC0") ))
+y_or <- exp(coef(fit.m2))
+robust_or <- suppressWarnings(
+                cbind(coef_t, y_or, 
+                   LL = exp(coef(fit.m2) - 1.96 * robust_sr), 
+                   UL = exp(coef(fit.m2) + 1.96 * robust_sr)))
+
+knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
+```
+
+### Robustness Check: Ordered Logistic Regression with freedonm as continuous variable and Reconstruction Completed as additional Control
+```{r message=FALSE}
+
+dat$FREEDOM_CHOICE <- as.numeric(dat$FREEDOM_CHOICE)
+# FIT ORDERED LOGISTIC REGRESSION ---
+fit.m3 <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE+RECON_COMPLETED, data=dat, Hess=TRUE, method="logistic")
+
+# CALCULATE P-VALUE ---
+summary_tab <- coef(summary(fit.m3))
+pvalue <- pnorm(abs(summary_tab[, "t value"]), lower.tail=FALSE)* 2
+summary_tab <- cbind(summary_tab, "p value"=round(pvalue,4))
+
+# CALCULATE LOG-ODDS RATIO ---
+tbl_oddratio <- exp(cbind(OddRatio=coef(fit.m3), confint(fit.m3, level=0.95)))
+
+# AGGREGATE DATA ---
+summary_table_var <- as.data.frame(cbind(summary_tab[1:nrow(tbl_oddratio),], tbl_oddratio))
+
+rmarkdown::paged_table(format(summary_table_var, digits=3), options=list(rows.print=10))  
+```
+
+```{r}
+# SATISFACTION THRESHOLD ---
+summary_table_st <- as.data.frame(summary_tab[(nrow(tbl_oddratio)+1):nrow(summary_tab),])
+rmarkdown::paged_table(summary_table_st)
+```
+
+### Analysis of deviance
+```{r}
+# ANOVA 
+car::Anova(fit.m3)
+```
+
+### Heteroscedasticity Robust stdandard errors and p-values 
+```{r}
+coef_t <- lmtest::coeftest(fit.m3, vcov = sandwich::vcovHC(fit.m3, type = "HC0"))
+coef_t
+```
+### Odds Ratios with Robust Confidence Intervals
+```{r}
+robust_sr <- sqrt(diag( sandwich::vcovHC(fit.m2, type = "HC0") ))
+y_or <- exp(coef(fit.m3))
+robust_or <- suppressWarnings(
+                cbind(coef_t, y_or, 
+                   LL = exp(coef(fit.m3) - 1.96 * robust_sr), 
+                   UL = exp(coef(fit.m3) + 1.96 * robust_sr)))
+
+knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
+```
+
+
+### OLS Model with Freedom as Categorical Variable
+```{r}
+dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
+fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE, data=dat)
+
+lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
+```
+
+### OLS Model with Freedom as Categorical Variable and Reconstruction Completed as an Additional Control
+```{r}
+dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE)
+fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE+RECON_COMPLETED, data=dat)
+
+lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
+```
+
+### OLS Model with Freedom as Continuous Variable
+```{r}
+dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.numeric(dat$FREEDOM_CHOICE)
+
+fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE, data=dat)
+
+lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
+```
+
+### OLS Model with Freedom as Continuous Variable and Reconstruction Completed as an Additional Control 
+```{r}
+dat$SATISFACTION_LEVEL <- as.numeric(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.numeric(dat$FREEDOM_CHOICE)
+fit_lin <- lm(SATISFACTION_LEVEL~SEX+ETHNICITY+FREEDOM_CHOICE+RECON_COMPLETED, data=dat)
+
+lmtest::coeftest(fit_lin, vcov = sandwich::vcovHC(fit_lin, type = "HC0"))
+```
