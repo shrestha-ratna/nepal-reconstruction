@@ -371,3 +371,31 @@ summary_table <- coef(summary(fit.free))
 pval <- pnorm(abs(summary_table[, "t value"]), lower.tail=FALSE)* 2
 summary_table <- cbind(summary_table, "p value"=round(pval,4))
 ```
+
+
+### Ordered Logistic Regression with Freedom Level 9 as Reference
+```{r message=FALSE}
+# FIT ORDERED LOGISTIC REGRESSION ---
+dat$SATISFACTION_LEVEL <- as.factor(dat$SATISFACTION_LEVEL)
+dat$FREEDOM_CHOICE <- as.factor(dat$FREEDOM_CHOICE) 
+dat9 <- within(dat, FREEDOM_CHOICE <- relevel(FREEDOM_CHOICE, ref = 9))
+
+fit.m9 <- MASS::polr(SATISFACTION_LEVEL ~ SEX+ETHNICITY+FREEDOM_CHOICE, data=dat9, Hess=TRUE, method="logistic")
+```
+
+### Heteroscedasticity Robust Standard Errors and p-values 
+```{r}
+coef_t9 <- lmtest::coeftest(fit.m9, vcov = sandwich::vcovHC(fit.m9, type = "HC0"))
+```
+
+### Odds Ratios with Robust 95% CI
+```{r}
+robust_sr <- sqrt(diag( sandwich::vcovHC(fit.m9, type = "HC0") ))
+y_or <- exp(coef(fit.m9))
+robust_or <- suppressWarnings(
+                cbind(coef_t9, y_or, 
+                   LL = exp(coef(fit.m9) - 1.96 * robust_sr), 
+                   UL = exp(coef(fit.m9) + 1.96 * robust_sr)))
+
+knitr::kable(format(as.data.frame(robust_or), digits=3), align="lllllll")
+```

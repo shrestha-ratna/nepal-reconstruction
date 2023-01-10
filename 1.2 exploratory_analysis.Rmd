@@ -353,3 +353,11 @@ p4
 ```{r fig.height = 5, fig.width = 6.5, fig.align = "center"}
 pl_den <- grid.arrange(p1, p4, ncol=1)
 ```
+
+
+### Correlation between mean satisfaction and Gini-Simpson of income by Ethnicity
+```{r}
+df3$Satisfaction_Mean
+df_gs <- c(0.733, 0.729, 0.665, 0.730, 0.648, 0.657)
+cor.test(df3$Satisfaction_Mean, df_gs, method="pearson")
+```
