@@ -17,6 +17,7 @@ library("dplyr")
 library("ggplot2")
 library("gridExtra")
 library("knitr")
+library("vegan")
 library("magrittr")
 ```
 
@@ -358,6 +359,14 @@ pl_den <- grid.arrange(p1, p4, ncol=1)
 ### Correlation between mean satisfaction and Gini-Simpson of income by Ethnicity
 ```{r}
 df3$Satisfaction_Mean
-df_gs <- c(0.733, 0.729, 0.665, 0.730, 0.648, 0.657)
-cor.test(df3$Satisfaction_Mean, df_gs, method="pearson")
+dat_eth <-data.frame(Ethnicity = c("Bahun", "Chettri", "Dalit", "Gurung", "Newar", "Tamang"),
+                  IC1 = c(2, 3, 6, 7, 2, 11), 
+                  IC2 = c(13, 17, 17, 22, 18, 61),
+                  IC3 = c(9, 18, 20, 30,8, 35),
+                  IC4 = c(13, 10, 4, 18, 8, 17),
+                  IC5 = c(1, 3, 0, 4, 0, 0),
+                  IC6 = c(2, 1, 0, 0, 0, 1))
+eth_simpson <- diversity(dat_eth[2:7], index = "simpson")
+shapiro.test(eth_simpson)
+cor.test(df3$Satisfaction_Mean, eth_simpson, method="pearson")
 ```
